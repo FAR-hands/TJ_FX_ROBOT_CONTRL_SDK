@@ -42,7 +42,7 @@ robot=Marvin_Robot()
 
 
 '''查验连接是否成功'''
-init = robot.connect('192.168.1.190')
+init = robot.connect('192.168.10.190')
 if init==0:
     logger.error('failed:端口占用，连接失败!')
     exit(0)
@@ -107,7 +107,7 @@ logger.info(f'set vel={sub_data["inputs"][1]["joint_vel_ratio"]}, acc={sub_data[
 
 '''点位1'''
 robot.clear_set()
-joint_cmd_1=[0.,0.,0.,0.,0.,0.,5.]
+joint_cmd_1=[10.,10.,10.,10.,10.,10.,50.]
 robot.set_joint_cmd_pose(arm='A',joints=joint_cmd_1)
 robot.set_joint_cmd_pose(arm='B',joints=joint_cmd_1)
 robot.send_cmd()
@@ -125,7 +125,7 @@ logger.info(f'current joint={sub_data["outputs"][1]["fb_joint_pos"]}')
 
 '''点位2'''
 robot.clear_set()
-joint_cmd_2=[0.,0.,0.,0.,0.,10.,50.]
+joint_cmd_2=[0.,0.,0.,0.,0.,0.,0.]
 robot.set_joint_cmd_pose(arm='A',joints=joint_cmd_2)
 robot.set_joint_cmd_pose(arm='B',joints=joint_cmd_2)
 robot.send_cmd()
