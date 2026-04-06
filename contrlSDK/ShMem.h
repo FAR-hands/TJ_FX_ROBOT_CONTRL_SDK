@@ -67,6 +67,9 @@ typedef struct
 	#ifdef CMPL_LIN
 	FX_INT32 shmid;                  /**< Share memory id.*/
 	#endif
+	#ifdef CMPL_MAC
+	FX_INT32 shmid;                  /**< Share memory id.*/
+	#endif
     FX_BOOL is_master;
 
 	SHMOnDestPtr OnDest;                /**< Function pointer of SHMOnDestPtr.*/
