@@ -64,10 +64,7 @@ typedef struct
 	#ifdef CMPL_WIN
 	HANDLE m_hMapFile;          /**< Share memory handler.*/
 	#endif
-	#ifdef CMPL_LIN
-	FX_INT32 shmid;                  /**< Share memory id.*/
-	#endif
-	#ifdef CMPL_MAC
+	#if defined(CMPL_LIN) || defined(CMPL_MAC)
 	FX_INT32 shmid;                  /**< Share memory id.*/
 	#endif
     FX_BOOL is_master;

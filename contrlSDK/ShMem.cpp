@@ -22,23 +22,7 @@ void SHMOnUnMap(void* object_ptr)
     }
 #endif
 
-#ifdef CMPL_LIN
-	if(pcast->m_shmem != NULL)
-	{
-		pcast->m_shmem -= 8;
-		shmdt(pcast->m_shmem);
-		pcast->m_shmem = NULL;
-	}
-    if(pcast->is_master)
-	{
-    	if(pcast->shmid != -1)
-    	{
-    		shmctl(pcast->shmid, IPC_RMID, 0);
-    		pcast->shmid = -1;
-    	}
-    }
-#endif
-#ifdef CMPL_MAC
+#if defined(CMPL_LIN) || defined(CMPL_MAC)
 	if(pcast->m_shmem != NULL)
 	{
 		pcast->m_shmem -= 8;
@@ -86,30 +70,7 @@ FX_BOOL SHMOnMapMster(void* object_ptr, FX_CHAR* shm_path_ptr, FX_UINT32 size)
 	pcast->m_shm_size = size;      
 	pcast->m_shmem = &pcast->m_shmem[8];
 #endif
-#ifdef CMPL_LIN 
-	key_t kt = ftok(shm_path_ptr, 7);
-	if(kt == -1)
-	{
-		return FX_FALSE;
-	}
-	pcast->shmid = shmget(kt, size + 8 , 0666 | IPC_CREAT);  
-	if(pcast->shmid == -1)
-	{
-		return FX_FALSE;
-	}
-	
-	pcast->m_shmem = (FX_UCHAR*)shmat(pcast->shmid, (FX_VOID*)0, 0);
-	if(pcast->m_shmem == (void*)-1)
-	{
-		return FX_FALSE;
-	}
-	
-	FX_INT32* psize = (FX_INT32*)pcast->m_shmem;
-	*psize = size;
-	pcast->m_shm_size = size;
-	pcast->m_shmem = &pcast->m_shmem[8];
-#endif
-#ifdef CMPL_MAC 
+#if defined(CMPL_LIN) || defined(CMPL_MAC)
 	key_t kt = ftok(shm_path_ptr, 7);
 	if(kt == -1)
 	{
@@ -153,28 +114,7 @@ FX_BOOL SHMOnMapSlave(FX_VOID* object_ptr, FX_CHAR* shm_path_ptr)
 	pcast->m_shmem = &pcast->m_shmem[8];
 #endif
 	
-#ifdef CMPL_LIN 	
-	key_t kt = ftok(shm_path_ptr, 7);
-	if(kt == -1)
-	{
-		return FX_FALSE;
-	}
-	pcast->shmid = shmget(kt, 0, 0);  
-	if(pcast->shmid == -1)
-	{
-		return FX_FALSE;
-	}
-	
-	pcast->m_shmem = (FX_UCHAR*)shmat(pcast->shmid, (FX_VOID*)0, 0);
-	if(pcast->m_shmem == (FX_VOID*)-1)
-	{
-		return FX_FALSE;
-	}
-	FX_INT32* psize = (FX_INT32*)pcast->m_shmem;
-	pcast->m_shm_size = *psize;       
-	pcast->m_shmem = &pcast->m_shmem[8];	
-#endif
-#ifdef CMPL_MAC 	
+#if defined(CMPL_LIN) || defined(CMPL_MAC)
 	key_t kt = ftok(shm_path_ptr, 7);
 	if(kt == -1)
 	{
@@ -226,10 +166,7 @@ FX_VOID ShmOnInit(FX_VOID* object_ptr)
 #ifdef CMPL_WIN
 	pcast->m_hMapFile = NULL;
 #endif
-#ifdef CMPL_LIN
-	pcast->shmid = -1;
-#endif
-#ifdef CMPL_MAC
+#if defined(CMPL_LIN) || defined(CMPL_MAC)
 	pcast->shmid = -1;
 #endif
     pcast->is_master = FX_FALSE;
