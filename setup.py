@@ -17,12 +17,24 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 PKG_DIR = os.path.join(ROOT, "SDK_PYTHON")
 LIB_DIR = os.path.join(ROOT, "lib")
 
-CXX = os.environ.get("CXX", "g++")
+import sys
+import platform
+
+IS_MACOS = sys.platform == "darwin"
+
+CXX = os.environ.get("CXX", "clang++" if IS_MACOS else "g++")
 CXXFLAGS = ["-Wall", "-w", "-O2", "-fPIC", "-shared", "-std=c++17"]
 
 CONTRL_SRCS = None  # will glob at build time
 
-LIBS = ["-lpthread", "-lrt"]
+if IS_MACOS:
+    LIBS = ["-lpthread"]
+    CMPL_FLAG = "-DCMPL_MAC"
+    LIB_EXT = ".dylib"
+else:
+    LIBS = ["-lpthread", "-lrt"]
+    CMPL_FLAG = "-DCMPL_LIN"
+    LIB_EXT = ".so"
 
 SYMLINK_DIRS = ("SDK_PYTHON", "DEMO_C++", "DEMO_PYTHON", "contrlSDK", "kinematicsSDK")
 
@@ -60,7 +72,7 @@ def refresh_symlinks():
         dest_dir = os.path.join(ROOT, dest)
         if not os.path.isdir(dest_dir):
             continue
-        for lib in ("libMarvinSDK.so", "libKine.so"):
+        for lib in ("libMarvinSDK" + LIB_EXT, "libKine" + LIB_EXT):
             link = os.path.join(dest_dir, lib)
             target = os.path.join(LIB_DIR, lib)
             if os.path.lexists(link):
@@ -81,14 +93,14 @@ class BuildAndCopy(build_py):
             for p in glob.glob(os.path.join(ROOT, "contrlSDK", "*.cpp"))
         ]
         compile_lib(
-            "libMarvinSDK.so", "contrlSDK", contrl_srcs,
-            extra_flags=["-DCMPL_LIN"],
+            "libMarvinSDK" + LIB_EXT, "contrlSDK", contrl_srcs,
+            extra_flags=[CMPL_FLAG],
         )
         kine_srcs = [
             os.path.basename(p)
             for p in glob.glob(os.path.join(ROOT, "kinematicsSDK", "*.cpp"))
         ]
-        compile_lib("libKine.so", "kinematicsSDK", kine_srcs)
+        compile_lib("libKine" + LIB_EXT, "kinematicsSDK", kine_srcs)
         refresh_symlinks()
         super().run()
 
@@ -98,6 +110,6 @@ setup(
     version="0.1.0",
     packages=["marvin_robot"],
     package_dir={"marvin_robot": "SDK_PYTHON"},
-    package_data={"marvin_robot": ["*.so", "*.dll"]},
+    package_data={"marvin_robot": ["*.so", "*.dylib", "*.dll"]},
     cmdclass={"build_py": BuildAndCopy},
 )

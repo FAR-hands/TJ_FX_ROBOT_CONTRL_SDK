@@ -329,6 +329,8 @@ class Marvin_Robot:
         print(f'user platform: {sys.platform}')
         if sys.platform=='win32':
             self.robot = ctypes.WinDLL(os.path.join(current_path,'libMarvinSDK.dll'))
+        elif sys.platform=='darwin':
+            self.robot = ctypes.CDLL(os.path.join(current_path,'libMarvinSDK.dylib'))
         else:
             self.robot = ctypes.CDLL(os.path.join(current_path,'libMarvinSDK.so'))
         self.ErrorCode = None

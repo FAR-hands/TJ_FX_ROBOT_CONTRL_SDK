@@ -9,3 +9,9 @@ test.txt
 testkj.txt
 DEMO_PYTHON/test.txt
 DEMO_PYTHON/testkj.txt
+
+# Build artifacts
+lib/
+build/
+*.dylib
+*.egg-info/

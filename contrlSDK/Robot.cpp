@@ -308,7 +308,7 @@ void CALLBACK CallBackFunc2(UINT uTimerID, UINT uMsg, DWORD_PTR dwUser, DWORD_PT
 }
 #endif
 
-#ifdef CMPL_LIN
+#if defined(CMPL_LIN) || defined(CMPL_MAC)
 
 void  CallBackFunc(union sigval v)
 {
@@ -520,6 +520,12 @@ bool CRobot::OnRelease()
     }
     usleep(10000);
 #endif
+#ifdef CMPL_MAC
+    if (m_InsRobot->m_LinkTag == FX_TRUE) {
+        dispatch_source_cancel(m_InsRobot->robot_timer);
+    }
+    usleep(10000);
+#endif
 
     // m_InsRobot->m_ShMem.OnDest(&m_InsRobot->m_ShMem);// 先注释，防止销毁
 	m_InsRobot->m_ShMem.OnDest(&m_InsRobot->m_ShMem);
@@ -619,20 +625,20 @@ bool CRobot::OnLinkTo(FX_UCHAR ip1, FX_UCHAR ip2, FX_UCHAR ip3, FX_UCHAR ip4)
 		return false;
 	}
 #endif
-#ifdef CMPL_LIN
+#if defined(CMPL_LIN) || defined(CMPL_MAC)
 	if (0 != ioctl(m_InsRobot->_local_sock, FIONBIO, &on))
 	{
 		return false;
 	}
 #endif
 
-    if (bind(m_InsRobot->_local_sock, (struct sockaddr*)&m_InsRobot->_local, sizeof(m_InsRobot->_local)) != 0)
+    if (::bind(m_InsRobot->_local_sock, (struct sockaddr*)&m_InsRobot->_local, sizeof(m_InsRobot->_local)) != 0)
     {
         if(m_InsRobot->m_LocalLogTag == true) printf("port bind failure, possibly occupied by another program\n");
         #ifdef CMPL_WIN
             closesocket(m_InsRobot->_local_sock);
         #endif
-        #ifdef CMPL_LIN
+        #if defined(CMPL_LIN) || defined(CMPL_MAC)
             close(m_InsRobot->_local_sock);
         #endif
         m_InsRobot->_local_sock = 0;
@@ -654,7 +660,7 @@ bool CRobot::OnLinkTo(FX_UCHAR ip1, FX_UCHAR ip2, FX_UCHAR ip3, FX_UCHAR ip4)
 #ifdef CMPL_WIN
 				int Len = recvfrom(m_InsRobot->_local_sock, m_InsRobot->recvbuf, 2000, 0, (struct sockaddr*)&m_InsRobot->_local, &_localLen);
 #endif
-#ifdef CMPL_LIN
+#if defined(CMPL_LIN) || defined(CMPL_MAC)
 				int Len = recvfrom(m_InsRobot->_local_sock, m_InsRobot->recvbuf, 2000, 0, (struct sockaddr*)&m_InsRobot->_local, (socklen_t*)&_localLen);
 #endif
 		while(Len > 0)
@@ -662,7 +668,7 @@ bool CRobot::OnLinkTo(FX_UCHAR ip1, FX_UCHAR ip2, FX_UCHAR ip3, FX_UCHAR ip4)
 #ifdef CMPL_WIN
 					 Len = recvfrom(m_InsRobot->_local_sock, m_InsRobot->recvbuf, 2000, 0, (struct sockaddr*)&m_InsRobot->_local, &_localLen);
 #endif
-#ifdef CMPL_LIN
+#if defined(CMPL_LIN) || defined(CMPL_MAC)
 					 Len = recvfrom(m_InsRobot->_local_sock, m_InsRobot->recvbuf, 2000, 0, (struct sockaddr*)&m_InsRobot->_local, (socklen_t*)&_localLen);
 #endif
 }
@@ -695,6 +701,25 @@ bool CRobot::OnLinkTo(FX_UCHAR ip1, FX_UCHAR ip2, FX_UCHAR ip3, FX_UCHAR ip4)
 		{
 			return false;
 		}
+	}
+#endif
+#ifdef CMPL_MAC
+	{
+		dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0);
+		m_InsRobot->robot_timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, queue);
+		if (!m_InsRobot->robot_timer) {
+			return false;
+		}
+		dispatch_source_set_timer(m_InsRobot->robot_timer,
+			dispatch_time(DISPATCH_TIME_NOW, 0),
+			1000000,   // 1 ms in nanoseconds
+			100000);   // 0.1 ms leeway
+		dispatch_source_set_event_handler(m_InsRobot->robot_timer, ^{
+			union sigval sv;
+			sv.sival_int = 0;
+			CallBackFunc(sv);
+		});
+		dispatch_resume(m_InsRobot->robot_timer);
 	}
 #endif
 
@@ -760,7 +785,7 @@ bool CRobot::OnLinkTo(FX_UCHAR ip1, FX_UCHAR ip2, FX_UCHAR ip3, FX_UCHAR ip4)
 //    }
 //#endif
 //    // 绑定Socket并检查结果
-//    if (bind(m_InsRobot->_local_sock, (struct sockaddr*)&m_InsRobot->_local, sizeof(m_InsRobot->_local)) != 0)
+//    if (::bind(m_InsRobot->_local_sock, (struct sockaddr*)&m_InsRobot->_local, sizeof(m_InsRobot->_local)) != 0)
 //    {
 //        if(m_InsRobot->m_LocalLogTag == true) printf("port bind failure, possibly occupied by another program\n");
 //        // 关闭socket连接
@@ -974,7 +999,7 @@ long CRobot::OnSetIntPara(char paraName[30], long setValue)
 #ifdef CMPL_WIN
 		Sleep(2);
 #endif
-#ifdef CMPL_LIN
+#if defined(CMPL_LIN) || defined(CMPL_MAC)
 		usleep(2000);
 #endif
 		long ret_s = m_InsRobot->m_DCSS.m_ParaRetSerial;
@@ -1061,7 +1086,7 @@ long CRobot::OnSetFloatPara(char paraName[30], double setValue)
 #ifdef CMPL_WIN
 		Sleep(2);
 #endif
-#ifdef CMPL_LIN
+#if defined(CMPL_LIN) || defined(CMPL_MAC)
 		usleep(2000);
 #endif
 
@@ -1147,7 +1172,7 @@ long CRobot::OnGetIntPara(char paraName[30], long* retValue)
 #ifdef CMPL_WIN
 		Sleep(2);
 #endif
-#ifdef CMPL_LIN
+#if defined(CMPL_LIN) || defined(CMPL_MAC)
 		usleep(2000);
 #endif
 
@@ -1247,7 +1272,7 @@ long CRobot::OnGetFloatPara(char paraName[30], double* retValue)
 #ifdef CMPL_WIN
 		Sleep(2);
 #endif
-#ifdef CMPL_LIN
+#if defined(CMPL_LIN) || defined(CMPL_MAC)
 		usleep(2000);
 #endif
 
@@ -1341,7 +1366,7 @@ long CRobot::OnSavePara()
 #ifdef CMPL_WIN
 		Sleep(2);
 #endif
-#ifdef CMPL_LIN
+#if defined(CMPL_LIN) || defined(CMPL_MAC)
 		usleep(2000);
 #endif
 
@@ -1401,7 +1426,7 @@ void CRobot::DoRecv()
 #ifdef CMPL_WIN
 		int Len = recvfrom(_local_sock, recvbuf, 2000, 0, (struct sockaddr*)&_local, &_localLen);
 #endif
-#ifdef CMPL_LIN
+#if defined(CMPL_LIN) || defined(CMPL_MAC)
 		int Len = recvfrom(_local_sock, recvbuf, 2000, 0, (struct sockaddr*)&_local, (socklen_t*)&_localLen);
 #endif
 
@@ -1483,7 +1508,7 @@ void CRobot::DoRecv()
 #ifdef CMPL_WIN
 		 Len = recvfrom(_local_sock, recvbuf, 2000, 0, (struct sockaddr*)&_local, &_localLen);
 #endif
-#ifdef CMPL_LIN
+#if defined(CMPL_LIN) || defined(CMPL_MAC)
 		 Len = recvfrom(_local_sock, recvbuf, 2000, 0, (struct sockaddr*)&_local, (socklen_t*)&_localLen);
 #endif
 
@@ -3993,7 +4018,7 @@ long CRobot::OnSetSendWaitResponse(long time_out)
 		#ifdef CMPL_WIN
 		    Sleep(1);
 		#endif
-		#ifdef CMPL_LIN
+		#if defined(CMPL_LIN) || defined(CMPL_MAC)
 		    usleep(1000);
 		#endif
 	}
