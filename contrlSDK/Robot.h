@@ -166,6 +166,9 @@ protected:
 	FX_BOOL m_LastGatherTag;
 #ifdef __linux__
 	timer_t robot_timer;
+#endif
+#ifdef CMPL_MAC
+	dispatch_source_t robot_timer;
 #endif	
 	DCSS    m_DCSS;
 

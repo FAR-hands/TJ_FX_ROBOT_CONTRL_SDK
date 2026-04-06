@@ -20,6 +20,8 @@ class Marvin_Kine:
         logger.info(f'user platform: {sys.platform}')
         if sys.platform == 'win32':
             self.kine = ctypes.WinDLL(os.path.join(current_path, 'libKine.dll'))
+        elif sys.platform == 'darwin':
+            self.kine = ctypes.CDLL(os.path.join(current_path, 'libKine.dylib'))
         else:
             self.kine = ctypes.CDLL(os.path.join(current_path, 'libKine.so'))
 

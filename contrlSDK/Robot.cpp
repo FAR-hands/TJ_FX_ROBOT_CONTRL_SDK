@@ -92,7 +92,11 @@ bool CRobot::OnSetChDataA(unsigned char *data_ptr, long size_int, long set_ch)
 	m_InsRobot->pDDSS1->m_Size = size_int;
 	m_InsRobot->pDDSS1->m_SUB_CH = set_ch;
 	memcpy(m_InsRobot->pDDSS1->m_Data, data_ptr, size_int);
+#ifdef USE_SINGLE_SOCK
+	sendto(m_InsRobot->_local_sock, (char *)m_InsRobot->m_SendBuf1, sizeof(DDSS) + 2, 0, (struct sockaddr *)&m_InsRobot->_to, sizeof(m_InsRobot->_to));
+#else
 	sendto(m_InsRobot->_tosock_, (char *)m_InsRobot->m_SendBuf1, sizeof(DDSS) + 2, 0, (struct sockaddr *)&m_InsRobot->_to, sizeof(m_InsRobot->_to));
+#endif
 	if (m_InsRobot->m_LocalLogTag == true)
 	{
 		printf("[Marvin SDK]: Set 485 of A arm: \nchannel =%d\n", set_ch);
@@ -170,7 +174,11 @@ bool CRobot::OnSetChDataB(unsigned char *data_ptr, long size_int, long set_ch)
 	m_InsRobot->pDDSS2->m_Size = size_int;
 	m_InsRobot->pDDSS2->m_SUB_CH = set_ch;
 	memcpy(m_InsRobot->pDDSS2->m_Data, data_ptr, size_int);
+#ifdef USE_SINGLE_SOCK
+	sendto(m_InsRobot->_local_sock, (char *)m_InsRobot->m_SendBuf2, sizeof(DDSS) + 2, 0, (struct sockaddr *)&m_InsRobot->_to, sizeof(m_InsRobot->_to));
+#else
 	sendto(m_InsRobot->_tosock_, (char *)m_InsRobot->m_SendBuf2, sizeof(DDSS) + 2, 0, (struct sockaddr *)&m_InsRobot->_to, sizeof(m_InsRobot->_to));
+#endif
 	if (m_InsRobot->m_LocalLogTag == true)
 	{
 		printf("[Marvin SDK]: Set 485 of B arm: channel =%d\n", set_ch);
@@ -264,7 +272,7 @@ void CALLBACK CallBackFunc2(UINT uTimerID, UINT uMsg, DWORD_PTR dwUser, DWORD_PT
 	m_InsRobot->DoSend();
 	m_InsRobot->DoCnt();
 }
-#elif defined(__linux__)
+#elif defined(__linux__) || defined(__APPLE__)
 void CallBackFunc(union sigval v)
 {
 	m_InsRobot->DoRecv();
@@ -458,6 +466,12 @@ bool CRobot::OnRelease()
 		timer_delete(m_InsRobot->robot_timer);
 	}
 	SLEEP(10);
+#elif defined(__APPLE__)
+	if (m_InsRobot->m_LinkTag == FX_TRUE)
+	{
+		dispatch_source_cancel(m_InsRobot->robot_timer);
+	}
+	SLEEP(10);
 #endif
 	m_InsRobot->m_ShMem.OnDest(&m_InsRobot->m_ShMem);
 	delete m_InsRobot;
@@ -530,7 +544,7 @@ bool CRobot::OnLinkTo(FX_UCHAR ip1, FX_UCHAR ip2, FX_UCHAR ip3, FX_UCHAR ip4)
 	{
 		return false;
 	}
-#elif defined(__linux__)
+#elif defined(__linux__) || defined(__APPLE__)
 	if (0 != ioctl(m_InsRobot->_local_sock, FIONBIO, &on))
 	{
 		return false;
@@ -542,12 +556,11 @@ bool CRobot::OnLinkTo(FX_UCHAR ip1, FX_UCHAR ip2, FX_UCHAR ip3, FX_UCHAR ip4)
 			printf("port bind failure, possibly occupied by another program\n");
 #ifdef _WIN32
 		closesocket(m_InsRobot->_local_sock);
-#elif defined(__linux__)
+#elif defined(__linux__) || defined(__APPLE__)
 		close(m_InsRobot->_local_sock);
 #endif
 		m_InsRobot->_local_sock = 0;
 		m_InsRobot->m_LinkTag = FX_FALSE;
-		return false;
 		return false;
 	}
 	memset(&m_InsRobot->_to, 0, sizeof(_to));
@@ -578,7 +591,7 @@ bool CRobot::OnLinkTo(FX_UCHAR ip1, FX_UCHAR ip2, FX_UCHAR ip3, FX_UCHAR ip4)
 
 #ifdef _WIN32
 	m_InsRobot->m_TimeEventID = timeSetEvent(1, 1, CallBackFunc2, (DWORD)NULL, TIME_PERIODIC);
-#else
+#elif defined(__linux__)
 	{
 		struct sigevent evp;
 		struct itimerspec ts;
@@ -602,6 +615,25 @@ bool CRobot::OnLinkTo(FX_UCHAR ip1, FX_UCHAR ip2, FX_UCHAR ip3, FX_UCHAR ip4)
 		{
 			return false;
 		}
+	}
+#elif defined(__APPLE__)
+	{
+		dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0);
+		m_InsRobot->robot_timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, queue);
+		if (!m_InsRobot->robot_timer)
+		{
+			return false;
+		}
+		dispatch_source_set_timer(m_InsRobot->robot_timer,
+			dispatch_time(DISPATCH_TIME_NOW, 0),
+			1000000,   // 1 ms in nanoseconds
+			100000);   // 0.1 ms leeway
+		dispatch_source_set_event_handler(m_InsRobot->robot_timer, ^{
+			union sigval sv;
+			sv.sival_int = 0;
+			CallBackFunc(sv);
+		});
+		dispatch_resume(m_InsRobot->robot_timer);
 	}
 #endif
 	// m_InsRobot->ReadPendingData();
@@ -1061,10 +1093,9 @@ void CRobot::DoRecv()
 	_localLen = sizeof(_local);
 #ifdef _WIN32
 	int Len = recvfrom(_local_sock, recvbuf, 2000, 0, (struct sockaddr *)&_local, &_localLen);
-#elif defined(__linux__)
+#elif defined(__linux__) || defined(__APPLE__)
 	int Len = recvfrom(_local_sock, recvbuf, 2000, 0, (struct sockaddr *)&_local, (socklen_t *)&_localLen);
 #endif
-	while (Len > 0)
 	{
 		if (Len == sizeof(DCSS) + 2)
 		{
@@ -1135,7 +1166,7 @@ void CRobot::DoRecv()
 		}
 #ifdef _WIN32
 		Len = recvfrom(_local_sock, recvbuf, 2000, 0, (struct sockaddr *)&_local, &_localLen);
-#elif defined(__linux__)
+#elif defined(__linux__) || defined(__APPLE__)
 		Len = recvfrom(_local_sock, recvbuf, 2000, 0, (struct sockaddr *)&_local, (socklen_t *)&_localLen);
 #endif
 	}
@@ -1145,7 +1176,11 @@ void CRobot::DoSend()
 {
 	if (m_SendTag == 100)
 	{
+#ifdef USE_SINGLE_SOCK
+		int tt = sendto(_local_sock, (char *)m_SendBuf, m_Slen, 0, (struct sockaddr *)&_to, sizeof(_to));
+#else
 		int tt = sendto(_tosock_, (char *)m_SendBuf, m_Slen, 0, (struct sockaddr *)&_to, sizeof(_to));
+#endif
 		m_SendTag = 0;
 		m_Slen = 0;
 	}

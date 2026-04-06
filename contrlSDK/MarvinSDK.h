@@ -7,6 +7,9 @@
 #elif defined(__linux__)
 #define FX_DLL_EXPORT
 #endif
+#ifdef CMPL_MAC
+#define FX_DLL_EXPORT  
+#endif
 #ifdef __cplusplus
 extern "C"
 {
