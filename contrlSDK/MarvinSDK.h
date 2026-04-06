@@ -10,6 +10,9 @@
 #ifdef CMPL_LIN
 #define FX_DLL_EXPORT  
 #endif
+#ifdef CMPL_MAC
+#define FX_DLL_EXPORT  
+#endif
 #ifdef __cplusplus
 extern "C" {
 #endif

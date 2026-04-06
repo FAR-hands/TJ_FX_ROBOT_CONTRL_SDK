@@ -154,6 +154,9 @@ protected:
 	FX_BOOL m_LastGatherTag;
 #ifdef CMPL_LIN
 	timer_t robot_timer;
+#endif
+#ifdef CMPL_MAC
+	dispatch_source_t robot_timer;
 #endif	
 	DCSS    m_DCSS;
 	DCSS    m_temp_dcss;//win
