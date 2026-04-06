@@ -118,7 +118,11 @@ bool CRobot::OnSetChDataA(unsigned char* data_ptr, long size_int, long set_ch)
 	m_InsRobot->pDDSS1->m_Size = size_int;
 	m_InsRobot->pDDSS1->m_SUB_CH = set_ch;
 	memcpy(m_InsRobot->pDDSS1->m_Data, data_ptr, size_int);
+#ifdef USE_SINGLE_SOCK
+	sendto(m_InsRobot->_local_sock, (char*)m_InsRobot->m_SendBuf1, sizeof(DDSS)+2, 0, (struct sockaddr*)&m_InsRobot->_to, sizeof(m_InsRobot->_to));
+#else
 	sendto(m_InsRobot->_tosock_, (char*)m_InsRobot->m_SendBuf1, sizeof(DDSS)+2, 0, (struct sockaddr*)&m_InsRobot->_to, sizeof(m_InsRobot->_to));
+#endif
 
 	if(m_InsRobot->m_LocalLogTag == true)
 	{
@@ -213,7 +217,11 @@ bool CRobot::OnSetChDataB(unsigned char* data_ptr, long size_int, long set_ch)
 	m_InsRobot->pDDSS2->m_Size = size_int;
 	m_InsRobot->pDDSS2->m_SUB_CH = set_ch;
 	memcpy(m_InsRobot->pDDSS2->m_Data, data_ptr, size_int);
+#ifdef USE_SINGLE_SOCK
+	sendto(m_InsRobot->_local_sock, (char*)m_InsRobot->m_SendBuf2, sizeof(DDSS) + 2, 0, (struct sockaddr*)&m_InsRobot->_to, sizeof(m_InsRobot->_to));
+#else
 	sendto(m_InsRobot->_tosock_, (char*)m_InsRobot->m_SendBuf2, sizeof(DDSS) + 2, 0, (struct sockaddr*)&m_InsRobot->_to, sizeof(m_InsRobot->_to));
+#endif
 
 	if(m_InsRobot->m_LocalLogTag == true)
 	{
@@ -1521,7 +1529,11 @@ void CRobot::DoSend()
 {
 	if (m_SendTag == 100)
 	{
+#ifdef USE_SINGLE_SOCK
+		int tt = sendto(_local_sock, (char*)m_SendBuf, m_Slen, 0, (struct sockaddr*)&_to, sizeof(_to));
+#else
 		int tt = sendto(_tosock_, (char*)m_SendBuf, m_Slen, 0, (struct sockaddr*)&_to, sizeof(_to));
+#endif
 		m_SendTag = 0;
 		m_Slen = 0;
 
