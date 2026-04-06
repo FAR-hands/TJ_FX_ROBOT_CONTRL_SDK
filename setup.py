@@ -30,10 +30,12 @@ CONTRL_SRCS = None  # will glob at build time
 if IS_MACOS:
     LIBS = ["-lpthread"]
     CMPL_FLAG = "-DCMPL_MAC"
+    EXTRA_FLAGS = ["-DUSE_SINGLE_SOCK"]
     LIB_EXT = ".dylib"
 else:
     LIBS = ["-lpthread", "-lrt"]
     CMPL_FLAG = "-DCMPL_LIN"
+    EXTRA_FLAGS = []
     LIB_EXT = ".so"
 
 SYMLINK_DIRS = ("SDK_PYTHON", "DEMO_C++", "DEMO_PYTHON", "contrlSDK", "kinematicsSDK")
@@ -94,7 +96,7 @@ class BuildAndCopy(build_py):
         ]
         compile_lib(
             "libMarvinSDK" + LIB_EXT, "contrlSDK", contrl_srcs,
-            extra_flags=[CMPL_FLAG],
+            extra_flags=[CMPL_FLAG] + EXTRA_FLAGS,
         )
         kine_srcs = [
             os.path.basename(p)

@@ -22,7 +22,7 @@ void SHMOnUnMap(void* object_ptr)
     }
 #endif
 
-#ifdef CMPL_LIN
+#if defined(CMPL_LIN) || defined(CMPL_MAC)
 	if(pcast->m_shmem != NULL)
 	{
 		pcast->m_shmem -= 8;
@@ -70,7 +70,7 @@ FX_BOOL SHMOnMapMster(void* object_ptr, FX_CHAR* shm_path_ptr, FX_UINT32 size)
 	pcast->m_shm_size = size;      
 	pcast->m_shmem = &pcast->m_shmem[8];
 #endif
-#ifdef CMPL_LIN 
+#if defined(CMPL_LIN) || defined(CMPL_MAC)
 	key_t kt = ftok(shm_path_ptr, 7);
 	if(kt == -1)
 	{
@@ -114,7 +114,7 @@ FX_BOOL SHMOnMapSlave(FX_VOID* object_ptr, FX_CHAR* shm_path_ptr)
 	pcast->m_shmem = &pcast->m_shmem[8];
 #endif
 	
-#ifdef CMPL_LIN 	
+#if defined(CMPL_LIN) || defined(CMPL_MAC)
 	key_t kt = ftok(shm_path_ptr, 7);
 	if(kt == -1)
 	{
@@ -166,7 +166,7 @@ FX_VOID ShmOnInit(FX_VOID* object_ptr)
 #ifdef CMPL_WIN
 	pcast->m_hMapFile = NULL;
 #endif
-#ifdef CMPL_LIN
+#if defined(CMPL_LIN) || defined(CMPL_MAC)
 	pcast->shmid = -1;
 #endif
     pcast->is_master = FX_FALSE;

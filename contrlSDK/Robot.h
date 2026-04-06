@@ -29,6 +29,14 @@
     #include <unistd.h>
     #include <errno.h>
     #define SLEEP(ms) usleep((ms) * 1000)  
+#elif defined(__APPLE__)
+    #include <sys/mman.h>
+    #include <sys/stat.h>
+    #include <fcntl.h>
+    #include <unistd.h>
+    #include <errno.h>
+    #include <dispatch/dispatch.h>
+    #define SLEEP(ms) usleep((ms) * 1000)  
 #else
     #error "Unsupported platform"
 #endif

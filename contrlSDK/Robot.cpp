@@ -550,7 +550,7 @@ bool CRobot::OnLinkTo(FX_UCHAR ip1, FX_UCHAR ip2, FX_UCHAR ip3, FX_UCHAR ip4)
 		return false;
 	}
 #endif
-	if (bind(m_InsRobot->_local_sock, (struct sockaddr *)&m_InsRobot->_local, sizeof(m_InsRobot->_local)) != 0)
+	if (::bind(m_InsRobot->_local_sock, (struct sockaddr *)&m_InsRobot->_local, sizeof(m_InsRobot->_local)) != 0)
 	{
 		if (m_InsRobot->m_LocalLogTag == true)
 			printf("port bind failure, possibly occupied by another program\n");
